@@ -202,7 +202,7 @@ public class DefaultNativeModel implements NativeModel {
         // <java.lang.System: void setOut0(java.io.PrintStream)>
         register("<java.lang.System: void setOut0(java.io.PrintStream)>", m ->
                 storeStaticField(m,
-                        "<java.lang.System:java.io.PrintStream out>",
+                        "<java.lang.System: java.io.PrintStream out>",
                         b -> b.getParam(0))
         );
 
