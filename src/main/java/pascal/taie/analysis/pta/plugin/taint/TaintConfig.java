@@ -33,6 +33,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.yaml.snakeyaml.LoaderOptions;
+
 import pascal.taie.analysis.pta.plugin.util.InvokeUtils;
 import pascal.taie.config.ConfigException;
 import pascal.taie.language.classes.ClassHierarchy;
@@ -88,7 +90,10 @@ record TaintConfig(List<Source> sources,
      */
     static TaintConfig loadConfig(
             String path, ClassHierarchy hierarchy, TypeSystem typeSystem) {
-        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        LoaderOptions loaderOptions = new LoaderOptions();
+        loaderOptions.setCodePointLimit(100 * 1024 * 1024);
+        ObjectMapper mapper = new ObjectMapper(YAMLFactory.builder()
+                .loaderOptions(loaderOptions).build());
         SimpleModule module = new SimpleModule();
         module.addDeserializer(TaintConfig.class,
                 new Deserializer(hierarchy, typeSystem));
@@ -318,21 +323,60 @@ record TaintConfig(List<Source> sources,
             if (node instanceof ArrayNode arrayNode) {
                 List<Sink> sinks = new ArrayList<>(arrayNode.size());
                 for (JsonNode elem : arrayNode) {
-                    String methodSig = elem.get("method").asText();
-                    JMethod method = hierarchy.getMethod(methodSig);
-                    if (method != null) {
-                        // if the method (given in config file) is absent in
-                        // the class hierarchy, just ignore it.
-                        int index = InvokeUtils.toInt(elem.get("index").asText());
-                        sinks.add(new Sink(method, index));
+                    JsonNode sinkKind = elem.get("kind");
+                    Sink sink;
+                    if (sinkKind != null) {
+                        sink = switch (sinkKind.asText()) {
+                            case "param" -> deserializeParamSink(elem);
+                            case "return" -> deserializeReturnSink(elem);
+                            default -> {
+                                logger.warn("Unknown sink kind \"{}\" in {}",
+                                        sinkKind.asText(), elem.toString());
+                                yield null;
+                            }
+                        };
                     } else {
-                        logger.warn("Cannot find sink method '{}'", methodSig);
+                        logger.warn("Ignore {} due to missing sink \"kind\"",
+                                elem.toString());
+                        sink = null;
+                    }
+                    if (sink != null) {
+                        sinks.add(sink);
                     }
                 }
                 return Collections.unmodifiableList(sinks);
             } else {
                 // if node is not an instance of ArrayNode, just return an empty set.
                 return List.of();
+            }
+        }
+
+        @Nullable
+        private ParamSink deserializeParamSink(JsonNode node) {
+            String methodSig = node.get("method").asText();
+            JMethod method = hierarchy.getMethod(methodSig);
+            if (method != null) {
+                // if the method (given in config file) is absent in
+                // the class hierarchy, just ignore it.
+                int index = InvokeUtils.toInt(node.get("index").asText());
+                return new ParamSink(method, index);
+            } else {
+                logger.warn("Cannot find sink method '{}'", methodSig);
+                return null;
+            }
+        }
+
+        @Nullable
+        private ReturnSink deserializeReturnSink(JsonNode node) {
+            String methodSig = node.get("method").asText();
+            JMethod method = hierarchy.getMethod(methodSig);
+            if (method != null) {
+                // if the method (given in config file) is absent in
+                // the class hierarchy, just ignore it.
+                return new ReturnSink(method);
+            } else {
+                logger.warn("Cannot find sink method '{}'", methodSig);
+                return null;
             }
         }
 

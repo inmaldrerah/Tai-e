@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -96,19 +97,19 @@ class TFGBuilder {
                 .stream()
                 .map(taintManager::getSourcePoint)
                 .forEach(p -> {
-                    Var sourceVar = null;
+                    List<Var> sourceVars = List.of();
                     if (p instanceof CallSourcePoint csp) {
-                        sourceVar = InvokeUtils.getVar(
+                        sourceVars = InvokeUtils.getVars(
                                 csp.sourceCall(), csp.index());
                     } else if (p instanceof ParamSourcePoint psp) {
-                        sourceVar = psp.sourceMethod().getIR()
-                                .getParam(psp.index());
+                        sourceVars = List.of(psp.sourceMethod().getIR()
+                                .getParam(psp.index()));
                     } else if (p instanceof FieldSourcePoint fsp) {
-                        sourceVar = fsp.loadField().getLValue();
+                        sourceVars = List.of(fsp.loadField().getLValue());
                     }
-                    if (sourceVar != null) {
+                    sourceVars.forEach(sourceVar -> {
                         sourceNodes.add(ofg.getVarNode(sourceVar));
-                    }
+                    });
                 });
         logger.info("Source nodes:");
         sourceNodes.forEach(logger::info);
@@ -116,8 +117,8 @@ class TFGBuilder {
         Set<Node> sinkNodes = Sets.newHybridSet();
         taintFlows.forEach(taintFlow -> {
             SinkPoint sinkPoint = taintFlow.sinkPoint();
-            Var sinkVar = InvokeUtils.getVar(sinkPoint.sinkCall(), sinkPoint.index());
-            sinkNodes.add(ofg.getVarNode(sinkVar));
+            InvokeUtils.getVars(sinkPoint.sinkCall(), sinkPoint.index())
+                    .forEach(sinkVar -> Optional.ofNullable(ofg.getVarNode(sinkVar)).ifPresent(sinkNodes::add));
         });
         logger.info("Sink nodes:");
         sinkNodes.forEach(logger::info);

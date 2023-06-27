@@ -22,6 +22,8 @@
 
 package pascal.taie.analysis.pta.plugin.util;
 
+import java.util.List;
+
 import pascal.taie.ir.exp.InvokeExp;
 import pascal.taie.ir.exp.InvokeInstanceExp;
 import pascal.taie.ir.exp.Var;
@@ -53,6 +55,10 @@ public final class InvokeUtils {
      */
     private static final String RESULT_STR = "result";
 
+    public static final int ALL = -3;
+
+    private static final String ALL_STR = "all";
+
     private InvokeUtils() {
     }
 
@@ -63,6 +69,7 @@ public final class InvokeUtils {
         return switch (s.toLowerCase()) {
             case BASE_STR -> BASE;
             case RESULT_STR -> RESULT;
+            case ALL_STR -> ALL;
             default -> Integer.parseInt(s);
         };
     }
@@ -74,6 +81,7 @@ public final class InvokeUtils {
         return switch (index) {
             case BASE -> BASE_STR;
             case RESULT -> RESULT_STR;
+            case ALL -> ALL_STR;
             default -> Integer.toString(index);
         };
     }
@@ -86,7 +94,29 @@ public final class InvokeUtils {
         return switch (index) {
             case BASE -> ((InvokeInstanceExp) invokeExp).getBase();
             case RESULT -> callSite.getResult();
+            case ALL -> null;
             default -> invokeExp.getArg(index);
         };
+    }
+
+    /**
+     * Retrieves a variable list from a call site and index.
+     */
+    public static List<Var> getVars(Invoke callSite, int index) {
+        InvokeExp invokeExp = callSite.getInvokeExp();
+        return switch (index) {
+            case BASE -> toVarList(((InvokeInstanceExp) invokeExp).getBase());
+            case RESULT -> toVarList(callSite.getResult());
+            case ALL -> invokeExp.getArgs().parallelStream().filter(var -> var != null).toList();
+            default -> toVarList(invokeExp.getArg(index));
+        };
+    }
+
+    private static List<Var> toVarList(Var var) {
+        if (var != null) {
+            return List.of(var);
+        } else {
+            return List.of();
+        }
     }
 }

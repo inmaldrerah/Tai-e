@@ -22,6 +22,21 @@
 
 package pascal.taie.analysis.pta.plugin.taint;
 
-public interface Sink {
-    
+import pascal.taie.analysis.pta.plugin.util.InvokeUtils;
+import pascal.taie.language.classes.JMethod;
+
+/**
+ * Represents a sink in taint analysis.
+ *
+ * @param method the sink method.
+ * @param index  the specific index used to locate the sensitive argument
+ *               at the call site of {@code method}.
+ */
+record ParamSink(JMethod method, int index) implements Sink {
+
+    @Override
+    public String toString() {
+        return String.format("ParamSink{%s/%s}",
+                method, InvokeUtils.toString(index));
+    }
 }

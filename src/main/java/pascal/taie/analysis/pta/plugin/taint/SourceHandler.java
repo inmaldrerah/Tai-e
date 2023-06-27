@@ -102,10 +102,12 @@ class SourceHandler extends OnFlyHandler {
         if (InvokeUtils.RESULT == index && callSite.getLValue() == null) {
             return;
         }
-        Var var = InvokeUtils.getVar(callSite, index);
-        SourcePoint sourcePoint = new CallSourcePoint(callSite, index);
-        Obj taint = manager.makeTaint(sourcePoint, source.type());
-        solver.addVarPointsTo(context, var, taint);
+        InvokeUtils.getVars(callSite, index)
+                .forEach(var -> {
+                    SourcePoint sourcePoint = new CallSourcePoint(callSite, index);
+                    Obj taint = manager.makeTaint(sourcePoint, source.type());
+                    solver.addVarPointsTo(context, var, taint);
+                });
     }
 
     /**

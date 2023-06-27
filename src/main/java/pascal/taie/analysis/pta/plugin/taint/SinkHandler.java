@@ -51,26 +51,49 @@ class SinkHandler extends Handler {
         PointerAnalysisResult result = solver.getResult();
         Set<TaintFlow> taintFlows = Sets.newOrderedSet();
         sinks.forEach(sink -> {
-            int i = sink.index();
-            result.getCallGraph()
-                    .edgesInTo(sink.method())
-                    // TODO: handle other call edges
-                    .filter(e -> e.getKind() != CallKind.OTHER)
-                    .map(Edge::getCallSite)
-                    .forEach(sinkCall -> {
-                        Var arg = InvokeUtils.getVar(sinkCall, i);
-                        SinkPoint sinkPoint = new SinkPoint(sinkCall, i);
-                        result.getPointsToSet(arg)
-                                .stream()
-                                .filter(manager::isTaint)
-                                .map(manager::getSourcePoint)
-                                .map(sourcePoint -> new TaintFlow(sourcePoint, sinkPoint))
-                                .forEach(taintFlows::add);
-                    });
+            if (sink instanceof ParamSink paramSink) {
+                int i = paramSink.index();
+                result.getCallGraph()
+                        .edgesInTo(paramSink.method())
+                        // TODO: handle other call edges
+                        .filter(e -> e.getKind() != CallKind.OTHER)
+                        .map(Edge::getCallSite)
+                        .forEach(sinkCall -> {
+                            Var arg = InvokeUtils.getVar(sinkCall, i);
+                            SinkPoint sinkPoint = new SinkPoint(sinkCall, i);
+                            result.getPointsToSet(arg)
+                                    .stream()
+                                    .filter(manager::isTaint)
+                                    .map(manager::getSourcePoint)
+                                    .map(sourcePoint -> new TaintFlow(sourcePoint, sinkPoint))
+                                    .forEach(taintFlows::add);
+                        });
+            } else if (sink instanceof ReturnSink returnSink) {
+                // TODO: find a way to get/generate sinkPoint for entry methods
+                result.getCallGraph()
+                        .edgesInTo(returnSink.method())
+                        // TODO: handle other call edges
+                        .filter(e -> e.getKind() != CallKind.OTHER)
+                        .map(Edge::getCallSite)
+                        .forEach(sinkCall -> {
+                            SinkPoint sinkPoint = new SinkPoint(sinkCall, -1);
+                            returnSink.method()
+                                    .getIR()
+                                    .getReturnVars()
+                                    .stream()
+                                    .flatMap(ret -> result.getPointsToSet(ret).stream())
+                                    .filter(manager::isTaint)
+                                    .map(manager::getSourcePoint)
+                                    .map(sourcePoint -> new TaintFlow(sourcePoint, sinkPoint))
+                                    .forEach(taintFlows::add);
+                        });
+            }
         });
         if (callSiteMode) {
-            Map<JMethod, Sink> sinkMap = sinks.stream()
-                    .collect(Collectors.toMap(Sink::method, s -> s));
+            Map<JMethod, ParamSink> sinkMap = sinks.stream()
+                    .filter(s -> s instanceof ParamSink)
+                    .map(s -> (ParamSink) s)
+                    .collect(Collectors.toMap(ParamSink::method, s -> s));
             // scan all reachable call sites to search sink calls
             result.getCallGraph()
                     .reachableMethods()
@@ -78,7 +101,7 @@ class SinkHandler extends Handler {
                     .flatMap(m -> m.getIR().invokes(false))
                     .forEach(callSite -> {
                         JMethod callee = callSite.getMethodRef().resolveNullable();
-                        Sink sink = sinkMap.get(callee);
+                        ParamSink sink = sinkMap.get(callee);
                         if (sink != null) {
                             int i = sink.index();
                             Var arg = InvokeUtils.getVar(callSite, i);
