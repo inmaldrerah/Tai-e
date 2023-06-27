@@ -205,7 +205,7 @@ class TypeMatcher {
                             Var index = arrayAccess.getIndex();
                             if (index.isConst()) { // index is constant
                                 int iIndex = ((IntLiteral) index.getConstValue()).getValue();
-                                if (argTypes[iIndex] == null) {
+                                if (iIndex < argTypes.length && argTypes[iIndex] == null) {
                                     argTypes[iIndex] = storeArray.getRValue().getType();
                                 } else { // found multiple definitions
                                     // on the same array index, give up
