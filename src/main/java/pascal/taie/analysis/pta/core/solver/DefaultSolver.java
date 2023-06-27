@@ -552,8 +552,8 @@ public class DefaultSolver implements Solver {
 
         private final MethodRef finalizeRef = finalize.getRef();
 
-        private final MethodRef registerRef = Objects.requireNonNull(
-                hierarchy.getJREMethod(FINALIZER_REGISTER)).getRef();
+        // private final MethodRef registerRef = Objects.requireNonNull(
+        //         hierarchy.getJREMethod(FINALIZER_REGISTER)).getRef();
 
         /**
          * Processes given Stmts in given CSMethod.
@@ -629,14 +629,14 @@ public class DefaultSolver implements Solver {
              * will eventually be removed.
              */
             private void processFinalizer(New stmt) {
-                Invoke registerInvoke = registerInvokes.computeIfAbsent(stmt, s -> {
-                    InvokeStatic callSite = new InvokeStatic(registerRef,
-                            Collections.singletonList(s.getLValue()));
-                    Invoke invoke = new Invoke(csMethod.getMethod(), callSite);
-                    invoke.setLineNumber(stmt.getLineNumber());
-                    return invoke;
-                });
-                processInvokeStatic(registerInvoke);
+                // Invoke registerInvoke = registerInvokes.computeIfAbsent(stmt, s -> {
+                //     InvokeStatic callSite = new InvokeStatic(registerRef,
+                //             Collections.singletonList(s.getLValue()));
+                //     Invoke invoke = new Invoke(csMethod.getMethod(), callSite);
+                //     invoke.setLineNumber(stmt.getLineNumber());
+                //     return invoke;
+                // });
+                // processInvokeStatic(registerInvoke);
             }
 
             private void processInvokeStatic(Invoke callSite) {
