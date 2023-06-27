@@ -40,6 +40,7 @@ import pascal.taie.analysis.pta.plugin.Plugin;
 import pascal.taie.analysis.pta.plugin.ReferenceHandler;
 import pascal.taie.analysis.pta.plugin.ResultProcessor;
 import pascal.taie.analysis.pta.plugin.ThreadHandler;
+import pascal.taie.analysis.pta.plugin.android.AndroidEntryPointHandler;
 import pascal.taie.analysis.pta.plugin.exception.ExceptionAnalysis;
 import pascal.taie.analysis.pta.plugin.invokedynamic.InvokeDynamicAnalysis;
 import pascal.taie.analysis.pta.plugin.invokedynamic.LambdaAnalysis;
@@ -125,12 +126,16 @@ public class PointerAnalysis extends ProgramAnalysis<PointerAnalysisResult> {
         // To record elapsed time precisely, AnalysisTimer should be added at first.
         plugin.addPlugin(
                 new AnalysisTimer(),
-                new EntryPointHandler(),
                 new ClassInitializer(),
                 new ThreadHandler(),
                 new NativeModeller(),
                 new ExceptionAnalysis()
         );
+        if (World.get().getOptions().isAndroidAnalysis()) {
+            plugin.addPlugin(new AndroidEntryPointHandler());
+        } else {
+            plugin.addPlugin(new EntryPointHandler());
+        }
         if (World.get().getOptions().getJavaVersion() < 9) {
             // current reference handler doesn't support Java 9+
             plugin.addPlugin(new ReferenceHandler());

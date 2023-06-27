@@ -127,6 +127,39 @@ public class Options implements Serializable {
         return inputClasses;
     }
 
+    public void setInputClasses(List<String> inputClasses) {
+        this.inputClasses = inputClasses;
+    }
+
+    @JsonProperty
+    @Option(names = {"--android-jars"})
+    private String androidJarsPath;
+
+    public String getAndroidJarsPath() {
+        return androidJarsPath;
+    }
+
+    @JsonProperty
+    @Option(names = {"--apk"})
+    private String apkPath;
+
+    public String getApkPath() {
+        return apkPath;
+    }
+
+    @JsonProperty
+    @Option(names = {"--manifest"},
+            description = "Path to AndroidManifest.xml.")
+    private String manifestXmlPath;
+
+    public String getManifestXmlPath() {
+        return manifestXmlPath;
+    }
+
+    public boolean isAndroidAnalysis() {
+        return apkPath != null && androidJarsPath != null && manifestXmlPath != null;
+    }
+
     @JsonProperty
     @Option(names = "-java",
             description = "Java version used by the program being analyzed" +
@@ -303,10 +336,15 @@ public class Options implements Serializable {
         if (options.getClassPath() != null
                 && options.mainClass == null
                 && options.inputClasses.isEmpty()
-                && options.getAppClassPath() == null) {
+                && options.getAppClassPath() == null
+                && options.manifestXmlPath == null) {
             throw new ConfigException("Missing options: " +
-                    "at least one of --main-class, --input-classes " +
-                    "or --app-class-path should be specified");
+                    "at least one of --main-class, --input-classes, " +
+                    "--app-class-path or --manifest" +
+                    " should be specified");
+        }
+        if (options.manifestXmlPath != null && options.worldBuilderClass == pascal.taie.frontend.soot.SootWorldBuilder.class) {
+            options.worldBuilderClass = pascal.taie.frontend.soot.AndroidWorldBuilder.class;
         }
         // mkdir for output dir
         if (!options.outputDir.exists()) {
@@ -391,6 +429,9 @@ public class Options implements Serializable {
                 ", appClassPath='" + appClassPath + '\'' +
                 ", mainClass='" + mainClass + '\'' +
                 ", inputClasses=" + inputClasses +
+                ", androidJarsPath=\'" + androidJarsPath + '\'' +
+                ", apkPath=\'" + apkPath + '\'' +
+                ", manifestXmlPath=\'" + manifestXmlPath + '\'' +
                 ", javaVersion=" + javaVersion +
                 ", prependJVM=" + prependJVM +
                 ", allowPhantom=" + allowPhantom +

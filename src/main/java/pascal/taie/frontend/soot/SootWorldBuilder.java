@@ -84,7 +84,7 @@ public class SootWorldBuilder extends AbstractWorldBuilder {
         runSoot(args.toArray(new String[0]));
     }
 
-    private static void initSoot(Options options, List<AnalysisConfig> analyses,
+    protected static void initSoot(Options options, List<AnalysisConfig> analyses,
                                  SootWorldBuilder builder) {
         // reset Soot
         G.reset();
@@ -139,7 +139,7 @@ public class SootWorldBuilder extends AbstractWorldBuilder {
      * Reads basic classes specified by file {@link #BASIC_CLASSES} and
      * adds them to {@code scene}.
      */
-    private static void addBasicClasses(Scene scene) {
+    protected static void addBasicClasses(Scene scene) {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         JavaType type = mapper.getTypeFactory()
                 .constructCollectionType(List.class, String.class);
@@ -167,7 +167,7 @@ public class SootWorldBuilder extends AbstractWorldBuilder {
      * @param analyses the analyses to be executed
      * @param scene    the Soot's scene
      */
-    private static void addReflectionLogClasses(List<AnalysisConfig> analyses, Scene scene) {
+    protected static void addReflectionLogClasses(List<AnalysisConfig> analyses, Scene scene) {
         analyses.forEach(config -> {
             if (config.getId().equals(PointerAnalysis.ID)) {
                 String path = config.getOptions().getString("reflection-log");
@@ -193,7 +193,7 @@ public class SootWorldBuilder extends AbstractWorldBuilder {
         });
     }
 
-    private void build(Options options, Scene scene) {
+    protected void build(Options options, Scene scene) {
         World.reset();
         World world = new World();
         World.set(world);
@@ -251,7 +251,7 @@ public class SootWorldBuilder extends AbstractWorldBuilder {
                 hierarchy.getDefaultClassLoader().loadClass(c.getName()));
     }
 
-    private static void runSoot(String[] args) {
+    protected static void runSoot(String[] args) {
         try {
             soot.Main.v().run(args);
         } catch (SootResolver.SootClassNotFoundException e) {
