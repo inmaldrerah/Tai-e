@@ -25,6 +25,7 @@ package pascal.taie.ir.proginfo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import pascal.taie.World;
+import pascal.taie.language.annotation.AnnotationHolder;
 import pascal.taie.language.classes.JClass;
 import pascal.taie.language.classes.JField;
 import pascal.taie.language.classes.StringReps;
@@ -92,8 +93,16 @@ public class FieldRef extends MemberRef {
             field = World.get().getClassHierarchy()
                     .resolveField(this);
             if (field == null) {
-                throw new FieldResolutionFailedException(
-                        "Cannot resolve " + this);
+                logger.warn("Cannot resolve " + this + ", creating phantom field");
+                field = getDeclaringClass().getPhantomField(getName(), getType());
+                if (field == null) {
+                    field = new JField(getDeclaringClass(), getName(), Set.of(),
+                            type, AnnotationHolder.emptyHolder());
+                    getDeclaringClass().addPhantomField(getName(), getType(), field);
+                }
+                return field;
+                // throw new FieldResolutionFailedException(
+                //         "Cannot resolve " + this);
             }
         }
         return field;
